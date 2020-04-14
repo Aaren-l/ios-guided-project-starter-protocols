@@ -37,17 +37,17 @@ protocol DiceGame {
     func play()
 }
 protocol  DiceGameDelagate {
-    func gameDidstart(_ game: DiceGame)
+    func gameDidStart(_ game: DiceGame)
     func game(_ game: DiceGame, didStartNewTurnWithDiceRoll diceRoll: Int)
-    func gmaeDidEnd(_ gmae: DiceGame)
+    func gameDidEnd(_ game: DiceGame)
 }
 //: Lastly, we'll create a custom class for tracking a player in our dice game.
 
 class Player {
     let id: Int
-    let KnockOutNumbers: Int = Int.random(in: 6...9)
+    let KnockOutNumber: Int = Int.random(in: 6...9)
     var score: Int = 0
-    var Lnockout: Bool = false
+    var knockedOut: Bool = false
     
     init(id: Int) {
         self.id = id
@@ -76,61 +76,60 @@ class KnockOut: DiceGame {
         var reachedGameEnd = false
         while !reachedGameEnd {
             for player in players where player.knockedOut == false{
-                
-                
                 let diceRollSum = dice.roll() + dice.roll()
                 delegate?.game(self, didStartNewTurnWithDiceRoll: diceRollSum)
-               
                 
-                
-                if diceRollSum == player.KnockOutNumbers {
+                if diceRollSum == player.KnockOutNumber {
                     print("Player \(player.id) is knocked out by rolling: \(player.KnockOutNumber)")
+                    player.knockedOut = true
+                    let activePlayers = players.filter( {$0.knockedOut == false})
+                    // If not, add score to running score
+                    if activePlayers.count == 0 {
+                        reachedGameEnd = true
+                        print("All players have been knocked out")
+                    }
+                } else {
+                    player.score += diceRollSum
+                    if player.score >= 100 {
+                        reachedGameEnd = true
+                        print("Player \(player.id) has won with a final score of \(player.score)")
+                    }
+                    
+                    // If it is knockout, goodbye player
+                    // Rolling the dice
+                    // Check knockout number
+                    // Game End
+                    // All players are knocked out
+                    // or when a player reaches 100
                 }
-                
-                player.KnockedOut = true
-                let activePlayers = players.filter( {$0.knockedOut == false})
-                // If not, add score to running score
-                if activePlayers.count == 0 {
-                    reachedGameEnd = true
-                    print("All players have been knocked out")
-                }
-            } else {
-                player.score += diceRollSum
-                
-                // If it is knockout, goodbye player
-                // Rolling the dice
-                // Check knockout number
-                // Game End
-                // All players are knocked out
-                // or when a player reaches 100
             }
+            delegate?.gameDidEnd(self)
         }
     }
 }
-
-//: The following class is used to track the status of the above game, and will conform to the `DiceGameDelegate` protocol.
-
-class DiceGameTracker: DiceGameDelagate {
-    func gameDidstart(_ game: DiceGame) {
-        numberOfTurns = 0
-        if game is KnockOut {
-            print("Started a new game of Knock Out")
+    
+    //: The following class is used to track the status of the above game, and will conform to the `DiceGameDelegate` protocol.
+    
+    class DiceGameTracker: DiceGameDelagate {
+        var numberOfTurns = 0
+        
+        func gameDidStart(_ game: DiceGame) {
+            numberOfTurns = 0
+            if game is KnockOut {
+                print("Started a new game of Knock Out")
+            }
+            print("The game is using a \(game.dice.sides)-sided dice")
         }
-        print("The game is using a \(game.dice.sides)-sided dice")
+        func game(_ game: DiceGame, didStartNewTurnWithDiceRoll diceRoll: Int) {
+            numberOfTurns += 1
+            print("Rolled a \(diceRoll)")
+        }
+        func gameDidEnd(_ game: DiceGame) {
+            print("The game lasted for \(numberOfTurns) turns")
+        }
     }
-    func game(_ game: DiceGame, didStartNewTurnWithDiceRoll diceRoll: Int) {
-        numberOfTurns += 1
-        print("Rolled a \(diceRoll)")
-    }
-    func gameDidEnd(_ game: DiceGame) {
-        print("The game lasted for \(numberOfTurns) turns")
-    }
-}
-
-//: Finally, we need to test out our game. Let's create a game instance, add a tracker, and instruct the game to play.
-let tracker = DiceGameTracker()
-let game = KnockOut(numberOfPlayers: 5)
-game.delegate = tracker
-game.play()
-
-
+    //: Finally, we need to test out our game. Let's create a game instance, add a tracker, and instruct the game to play.
+    let tracker = DiceGameTracker()
+    let game = KnockOut(numberOfPlayers: 5)
+    game.delegate = tracker
+    game.play()
